@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explorador Interativo de Criptografia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony (Warm neutrals with soft blue accent) -->
+    <!-- Application Structure Plan: A single-page, vertical scrolling "presentation" format. Sections for Intro, Symmetric vs. Asymmetric, and a core interactive RSA calculator. The calculator guides the user step-by-step through key generation, encryption, and decryption. This structure turns a static explanation into an active learning experience, making complex math digestible. -->
+    <!-- Visualization & Content Choices: Report Info: RSA mathematical steps. Goal: Educate & Engage. Presentation: An interactive HTML/CSS "calculator" widget. Interaction: User clicks to reveal calculation steps, inputs a message, and clicks to see encryption/decryption performed live. Justification: Actively engaging with the algorithm is more effective for understanding than passive reading. Library/Method: Vanilla JS for logic (using BigInt for calculations), Tailwind CSS for styling. CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-in-out forwards;
+            opacity: 0;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .highlight-box {
+            background-color: rgba(255, 251, 235, 0.8);
+            border-left: 4px solid #f59e0b;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        .calc-value {
+            font-weight: 700;
+            color: #3b82f6;
+            min-width: 40px;
+            display: inline-block;
+            text-align: center;
+        }
+        .calc-step {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: opacity 0.5s ease-out, max-height 0.5s ease-out, transform 0.5s ease-out;
+            transform: translateY(-10px);
+        }
+        .calc-step.visible {
+            opacity: 1;
+            max-height: 500px;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-slate-800">
+
+    <main>
+        <section id="intro" class="section bg-stone-100">
+            <div class="text-center max-w-3xl mx-auto">
+                <h1 class="text-5xl md:text-7xl font-bold text-slate-900 mb-4">O que é Criptografia?</h1>
+                <p class="text-lg md:text-xl text-slate-600 mb-8">
+                    A criptografia é a prática de transformar dados legíveis em um formato ilegível e embaralhado, para que apenas pessoas autorizadas consigam acessá-los. É como trancar uma mensagem em uma caixa com um cadeado, de forma que apenas o seu amigo tenha a chave para abri-la.
+                </p>
+                <div class="text-6xl">🔐</div>
+            </div>
+        </section>
+
+        <section id="types" class="section">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl md:text-5xl font-bold text-slate-900">Tipos de Criptografia</h2>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 max-w-5xl w-full">
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                    <h3 class="text-2xl font-bold mb-4 text-center">Criptografia Simétrica</h3>
+                    <p class="text-slate-600 mb-4 text-center">Usa **uma única chave** para trancar e destrancar a caixa. É muito rápida e eficiente, mas compartilhar a chave de forma segura pode ser um desafio.</p>
+                    <div class="text-5xl text-center">🔑</div>
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                    <h3 class="text-2xl font-bold mb-4 text-center">Criptografia Assimétrica</h3>
+                    <p class="text-slate-600 mb-4 text-center">Usa **duas chaves**: uma **pública** para trancar e uma **privada** para destrancar. Qualquer um pode trancar, mas só o dono da chave privada pode abrir.</p>
+                    <div class="text-5xl text-center">🌍 🗝️</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="rsa" class="section bg-stone-100">
+            <div class="text-center mb-12 max-w-3xl">
+                <h2 class="text-4xl md:text-5xl font-bold text-slate-900">O Algoritmo RSA: Uma Demonstração</h2>
+                <p class="text-lg text-slate-600 mt-4">
+                    O RSA é o algoritmo de chave pública mais famoso. Sua segurança se baseia em um princípio matemático: é fácil multiplicar dois números primos enormes, mas é praticamente impossível fatorar o resultado. Vamos explorar como ele funciona de forma interativa.
+                </p>
+            </div>
+            <div id="rsa-calculator" class="bg-white p-6 md:p-8 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl space-y-6">
+                
+                <div id="step-1" class="calc-step visible">
+                    <h3 class="text-xl font-bold mb-3">Passo 1: Geração das Chaves (Alice)</h3>
+                    <p class="text-slate-600 mb-4">Alice começa escolhendo dois números primos secretos. Na vida real, eles seriam gigantescos.</p>
+                    <div class="highlight-box space-y-2 text-lg">
+                        <p>Número primo (p): <span class="calc-value" id="p_val">7</span></p>
+                        <p>Número primo (q): <span class="calc-value" id="q_val">11</span></p>
+                    </div>
+                </div>
+
+                <div id="step-2" class="calc-step">
+                    <h3 class="text-xl font-bold mb-3">Passo 2: Calcular 'n' (Módulo)</h3>
+                    <p class="text-slate-600 mb-4">Alice calcula 'n', que fará parte tanto da chave pública quanto da privada. É o produto de p e q.</p>
+                     <div class="highlight-box space-y-2 text-lg">
+                        <p>n = p × q = 7 × 11 = <span class="calc-value" id="n_val">?</span></p>
+                    </div>
+                </div>
+
+                <div id="step-3" class="calc-step">
+                    <h3 class="text-xl font-bold mb-3">Passo 3: Função Totiente de Euler (φ(n))</h3>
+                    <p class="text-slate-600 mb-4">Este cálculo é crucial para determinar os expoentes das chaves. Ele define o escopo da aritmética modular que torna o RSA seguro.</p>
+                     <div class="highlight-box space-y-2 text-lg">
+                        <p>φ(n) = (p-1) × (q-1) = 6 × 10 = <span class="calc-value" id="phi_val">?</span></p>
+                    </div>
+                </div>
+
+                <div id="step-4" class="calc-step">
+                    <h3 class="text-xl font-bold mb-3">Passo 4: Expoente Público (e)</h3>
+                    <p class="text-slate-600 mb-4">Alice escolhe um número 'e' que não tenha fatores em comum com φ(n). Este número é parte da chave pública.</p>
+                     <div class="highlight-box space-y-2 text-lg">
+                        <p>Expoente público (e): <span class="calc-value" id="e_val">13</span></p>
+                        <p class="text-sm text-slate-500">A chave pública completa é o par (e, n).</p>
+                    </div>
+                </div>
+
+                <div id="step-5" class="calc-step">
+                    <h3 class="text-xl font-bold mb-3">Passo 5: Expoente Privado (d)</h3>
+                    <p class="text-slate-600 mb-4">'d' é a chave secreta de Alice, calculada para ser o inverso multiplicativo modular de 'e'. É o que permite "desfazer" a criptografia.</p>
+                     <div class="highlight-box space-y-2 text-lg">
+                        <p>d tal que (d × e) mod φ(n) = 1</p>
+                        <p>d = <span class="calc-value" id="d_val">?</span></p>
+                        <p class="text-sm text-slate-500">A chave privada completa é o par (d, n).</p>
+                    </div>
+                </div>
+
+                <div id="step-6" class="calc-step">
+                    <h3 class="text-xl font-bold mb-3">Passo 6: Criptografar uma Mensagem (Bob)</h3>
+                    <p class="text-slate-600 mb-4">Bob usa a chave pública de Alice (e, n) para criptografar uma mensagem. A mensagem deve ser um número.</p>
+                    <div class="flex items-center gap-4 mb-4">
+                        <label for="message" class="font-medium">Mensagem (m):</label>
+                        <input type="number" id="message" value="5" class="w-24 p-2 border border-slate-300 rounded-md text-center">
+                        <button id="encrypt-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">Criptografar</button>
+                    </div>
+                    <div class="highlight-box space-y-2 text-lg">
+                        <p>C = m<sup>e</sup> mod n</p>
+                        <p>C = <span id="c_val_calc">?</span></p>
+                    </div>
+                </div>
+                
+                <div id="step-7" class="calc-step">
+                    <h3 class="text-xl font-bold mb-3">Passo 7: Descriptografar a Mensagem (Alice)</h3>
+                    <p class="text-slate-600 mb-4">Alice usa sua chave privada (d, n) para descriptografar a mensagem recebida de Bob.</p>
+                     <div class="flex items-center gap-4 mb-4">
+                         <button id="decrypt-btn" class="bg-amber-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-amber-600 transition-colors">Descriptografar</button>
+                     </div>
+                    <div class="highlight-box space-y-2 text-lg">
+                        <p>M = C<sup>d</sup> mod n</p>
+                        <p>M = <span id="m_val_calc">?</span></p>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-center">
+                    <button id="next-step-btn" class="bg-slate-800 text-white font-bold py-3 px-6 rounded-lg hover:bg-slate-900 transition-colors">Próximo Passo</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const rsaData = {
+                p: 7n,
+                q: 11n,
+                n: 0n,
+                phi: 0n,
+                e: 13n,
+                d: 0n,
+                message: 0n,
+                encrypted: 0n,
+                decrypted: 0n
+            };
+
+            let currentStep = 1;
+            const totalSteps = 7;
+
+            const nextStepBtn = document.getElementById('next-step-btn');
+            const encryptBtn = document.getElementById('encrypt-btn');
+            const decryptBtn = document.getElementById('decrypt-btn');
+            
+            const p_val = document.getElementById('p_val');
+            const q_val = document.getElementById('q_val');
+            const n_val = document.getElementById('n_val');
+            const phi_val = document.getElementById('phi_val');
+            const e_val = document.getElementById('e_val');
+            const d_val = document.getElementById('d_val');
+            const messageInput = document.getElementById('message');
+            const c_val_calc = document.getElementById('c_val_calc');
+            const m_val_calc = document.getElementById('m_val_calc');
+
+            p_val.textContent = rsaData.p.toString();
+            q_val.textContent = rsaData.q.toString();
+            e_val.textContent = rsaData.e.toString();
+
+            function showStep(stepNumber) {
+                const stepElement = document.getElementById(`step-${stepNumber}`);
+                if (stepElement) {
+                    stepElement.classList.add('visible');
+                }
+            }
+            
+            function modInverse(e, phi) {
+                let m0 = phi, t, q;
+                let x0 = 0n, x1 = 1n;
+                if (phi === 1n) return 0n;
+                while (e > 1n) {
+                    q = e / phi;
+                    t = phi;
+                    phi = e % phi, e = t;
+                    t = x0;
+                    x0 = x1 - q * x0;
+                    x1 = t;
+                }
+                if (x1 < 0n) x1 += m0;
+                return x1;
+            }
+
+            function modularExponentiation(base, exp, mod) {
+                if (mod === 1n) return 0n;
+                let result = 1n;
+                base = base % mod;
+                while (exp > 0n) {
+                    if (exp % 2n === 1n) result = (result * base) % mod;
+                    exp = exp >> 1n;
+                    base = (base * base) % mod;
+                }
+                return result;
+            }
+
+            nextStepBtn.addEventListener('click', () => {
+                if (currentStep >= totalSteps) return;
+                
+                currentStep++;
+                showStep(currentStep);
+
+                switch(currentStep) {
+                    case 2:
+                        rsaData.n = rsaData.p * rsaData.q;
+                        n_val.textContent = rsaData.n.toString();
+                        break;
+                    case 3:
+                        rsaData.phi = (rsaData.p - 1n) * (rsaData.q - 1n);
+                        phi_val.textContent = rsaData.phi.toString();
+                        break;
+                    case 4:
+                        break;
+                    case 5:
+                        rsaData.d = modInverse(rsaData.e, rsaData.phi);
+                        d_val.textContent = rsaData.d.toString();
+                        break;
+                    case 6:
+                        break;
+                    case 7:
+                        nextStepBtn.style.display = 'none';
+                        break;
+                }
+            });
+
+            encryptBtn.addEventListener('click', () => {
+                const messageValue = BigInt(messageInput.value);
+                if (messageValue >= rsaData.n) {
+                    alert(`A mensagem deve ser um número menor que n (${rsaData.n}).`);
+                    return;
+                }
+                rsaData.message = messageValue;
+                rsaData.encrypted = modularExponentiation(rsaData.message, rsaData.e, rsaData.n);
+                c_val_calc.textContent = `${rsaData.message}^${rsaData.e} mod ${rsaData.n} = ${rsaData.encrypted}`;
+            });
+
+            decryptBtn.addEventListener('click', () => {
+                if (rsaData.encrypted === 0n) {
+                    alert('Por favor, primeiro criptografe uma mensagem.');
+                    return;
+                }
+                rsaData.decrypted = modularExponentiation(rsaData.encrypted, rsaData.d, rsaData.n);
+                m_val_calc.textContent = `${rsaData.encrypted}^${rsaData.d} mod ${rsaData.n} = ${rsaData.decrypted}`;
+            });
+        });
+    </script>
+</body>
+</html>
